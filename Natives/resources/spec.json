@@ -1,0 +1,186 @@
+[
+    {
+        "name":  "Cobblemon",
+        "modrinth":  "cobblemon",
+        "curseforge":  687131,
+        "contains":  "cobblemon",
+        "excludes":  "stylish",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Fabric API",
+        "modrinth":  "fabric-api",
+        "curseforge":  306612,
+        "contains":  "fabric-api",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Architectury API",
+        "modrinth":  "architectury-api",
+        "curseforge":  419699,
+        "contains":  "architectury",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Cloth Config API",
+        "modrinth":  "cloth-config",
+        "curseforge":  348521,
+        "contains":  "cloth-config",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "YetAnotherConfigLib",
+        "modrinth":  "yacl",
+        "curseforge":  667299,
+        "contains":  "yet_another_config_lib",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "owo-lib",
+        "modrinth":  "owo-lib",
+        "curseforge":  532610,
+        "contains":  "owo-lib",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Accessories",
+        "modrinth":  "accessories",
+        "curseforge":  39407,
+        "contains":  "accessories",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "GeckoLib",
+        "modrinth":  "geckolib",
+        "curseforge":  388172,
+        "contains":  "geckolib",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Cobblemon: Mega Showdown",
+        "modrinth":  "cobblemon-mega-showdown",
+        "curseforge":  1189523,
+        "contains":  "showdown",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "REI",
+        "modrinth":  "rei",
+        "curseforge":  310111,
+        "contains":  "roughlyenoughitems",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Xaero 小地图",
+        "modrinth":  "xaeros-minimap",
+        "curseforge":  263420,
+        "contains":  "xaerominimap",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Xaero 世界地图",
+        "modrinth":  "xaeros-world-map",
+        "curseforge":  317780,
+        "contains":  "xaeroworldmap",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Cobblemon PokeNav",
+        "modrinth":  "cobblemon-pokenav",
+        "curseforge":  976014,
+        "contains":  "cobblenav",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Chiselmon",
+        "modrinth":  "chiselmon",
+        "curseforge":  1475518,
+        "contains":  "chiselmon",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Berry Pouch",
+        "modrinth":  "berry-pouch",
+        "curseforge":  1246510,
+        "contains":  "berrypouch",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Chat Heads",
+        "modrinth":  "chat-heads",
+        "curseforge":  407206,
+        "contains":  "chat_heads",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Joy of Painting",
+        "modrinth":  "joy-of-painting",
+        "curseforge":  350727,
+        "contains":  "xercapaint",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Jade",
+        "modrinth":  "jade",
+        "curseforge":  324717,
+        "contains":  "jade",
+        "excludes":  "addons",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Cobblemon: Stylish Battles",
+        "modrinth":  "",
+        "curseforge":  1701106,
+        "contains":  "cobblemon-stylish",
+        "excludes":  "",
+        "kind":  "mod"
+    },
+    {
+        "name":  "Cobblemon Interface",
+        "modrinth":  "cobblemon-interface",
+        "curseforge":  860898,
+        "contains":  "cobblemon interface v",
+        "excludes":  "modded",
+        "kind":  "pack"
+    },
+    {
+        "name":  "Cobblemon Interface Modded",
+        "modrinth":  "cobblemon-interface-modded",
+        "curseforge":  989454,
+        "contains":  "cobblemon interface modded",
+        "excludes":  "",
+        "kind":  "pack"
+    },
+    {
+        "name":  "Berry Pouch Interface",
+        "modrinth":  "cobblemon-interface-berry-pouch-0-5",
+        "curseforge":  0,
+        "contains":  "berry pouch",
+        "excludes":  "",
+        "kind":  "pack"
+    },
+    {
+        "name":  "E19 Cobblemon 小地图图标",
+        "modrinth":  "e19_cobblemon_minimap_icons",
+        "curseforge":  0,
+        "contains":  "e19",
+        "excludes":  "",
+        "kind":  "pack"
+    }
+]

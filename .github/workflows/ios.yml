@@ -1,0 +1,92 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    name: Unsigned IPA / TrollStore TIPA
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install build tools
+        run: |
+          command -v ldid >/dev/null 2>&1 || brew install ldid
+          command -v gmake >/dev/null 2>&1 || brew install make
+          command -v wget >/dev/null 2>&1 || brew install wget
+          echo "$(brew --prefix)/opt/make/libexec/gnubin" >> "$GITHUB_PATH"
+
+      - name: Fetch iOS Java runtimes
+        run: |
+          mkdir -p depends
+          for v in 8 17 21; do
+            echo "Downloading JRE $v..."
+            curl -L --fail --retry 3 -o "depends/jre${v}.zip" \
+              "https://assets.angelauramc.dev/openjdk/ios-arm64/jre${v}-ios-aarch64.zip"
+            unzip -q "depends/jre${v}.zip" -d depends
+            rm -f "depends/jre${v}.zip"
+            mkdir -p "depends/java-${v}-openjdk"
+            tar xf depends/jre${v}-ios-arm64-*.tar.xz -C "depends/java-${v}-openjdk"
+            rm -f depends/jre${v}-ios-arm64-*.tar.xz
+            test -f "depends/java-${v}-openjdk/release" || { echo "JRE $v unpack failed"; exit 1; }
+          done
+          ls -1 depends
+
+      - name: Build unsigned IPA
+        env:
+          RUNNER: "1"
+        run: |
+          if [ -n "$JAVA_HOME_8_X64" ]; then
+            export BOOTJDK="$JAVA_HOME_8_X64/bin"
+          else
+            export BOOTJDK="$(/usr/libexec/java_home -v 1.8)/bin"
+          fi
+          gmake -j"$(sysctl -n hw.ncpu)" dsym package PLATFORM=2 BOOTJDK="$BOOTJDK" JOBS="$(sysctl -n hw.ncpu)"
+
+      - name: Build TrollStore TIPA
+        run: |
+          cd artifacts
+          ipa=$(ls shiguang-ios-*.ipa | grep -v trollstore | head -1)
+          ver=$(echo "$ipa" | sed 's/^shiguang-ios-//; s/-ios\.ipa$//')
+          ldid -S"$GITHUB_WORKSPACE/entitlements.trollstore.xml" Payload/PojavLauncher.app/PojavLauncher
+          zip --symlinks -rq "shiguang-ios-${ver}-ios-trollstore.tipa" Payload
+          ls -lh ./*.ipa ./*.tipa
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p output
+          cp artifacts/shiguang-ios-*.ipa output/ 2>/dev/null || true
+          cp artifacts/shiguang-ios-*.tipa output/ 2>/dev/null || true
+          ls -lh output
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: shiguang-ios-ipa
+          path: output/*.ipa
+          if-no-files-found: error
+
+      - name: Upload TrollStore TIPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: shiguang-ios-trollstore
+          path: output/*.tipa
+          if-no-files-found: error
+
+      - name: Upload dSYM
+        uses: actions/upload-artifact@v4
+        with:
+          name: shiguang-ios-dsym
+          path: artifacts/PojavLauncher.dSYM
+          if-no-files-found: ignore
