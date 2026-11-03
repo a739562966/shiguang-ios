@@ -30,9 +30,9 @@ jobs:
       - name: Set up JDK 8
         run: |
           curl -L --fail --retry 3 -o /tmp/jdk8.tar.gz \
-            "https://api.adoptium.net/v3/binary/latest/8/ga/mac/aarch64/jdk/hotspot/normal/eclipse"
+            "https://cdn.azul.com/zulu/bin/zulu8.98.0.107-ca-jdk8.0.512-macosx_aarch64.tar.gz"
           mkdir -p /tmp/jdk8 && tar xzf /tmp/jdk8.tar.gz -C /tmp/jdk8
-          JH=$(find /tmp/jdk8 -maxdepth 3 -type d -name Home | head -1)
+          JH=$(find /tmp/jdk8 -maxdepth 5 -type d -name Home | head -1)
           test -x "$JH/bin/javac" || { echo "JDK 8 extract failed"; exit 1; }
           echo "BOOTJDK=$JH/bin" >> "$GITHUB_ENV"
           "$JH/bin/javac" -version
