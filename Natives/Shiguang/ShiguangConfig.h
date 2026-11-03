@@ -11,10 +11,9 @@
 #define SHIGUANG_SERVER_MODS_URL    @"http://119.188.240.218:14325/mods/"
 #define SHIGUANG_ACCOUNT_TYPE       @"shiguang"
 #define SHIGUANG_USER_AGENT         @"Shiguang/iOS"
-#define SHIGUANG_VERSION            @"1.0.1"
+#define SHIGUANG_VERSION            @"1.0.2"
 
-/// 与桌面版一致：公告 / 意见反馈 / QQ 群 / 版本更新
-#define SHIGUANG_ANNOUNCEMENT_URL   @"http://www.shiguangxz.online:3000/api/announcements?page=1&pageSize=1"
+/// 与桌面版一致：意见反馈 / QQ 群 / 版本更新
 #define SHIGUANG_FEEDBACK_URL       @"http://www.shiguangxz.online:3000/"
 #define SHIGUANG_QQ_URL             @"https://qm.qq.com/q/txQDQ9H7lm"
 #define SHIGUANG_RELEASES_URL       @"https://github.com/a739562966/shiguang-ios/releases"

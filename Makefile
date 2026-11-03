@@ -9,7 +9,7 @@ OUTPUTDIR   := $(SOURCEDIR)/artifacts
 WORKINGDIR  := $(SOURCEDIR)/Natives/build
 DETECTPLAT  := $(shell uname -s)
 DETECTARCH  := $(shell uname -m)
-VERSION     := 1.0.1
+VERSION     := 1.0.2
 BRANCH      := $(shell git branch --show-current)
 COMMIT      := $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
 # 打 tag 时处于 detached HEAD，branch 为空会导致 CONFIG_BRANCH 未定义而编译失败

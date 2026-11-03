@@ -40,16 +40,6 @@ static BOOL ShiguangIsTrollStore(void) {
     return [NSFileManager.defaultManager fileExistsAtPath:marker];
 }
 
-static NSString *ShiguangFormatAnnouncementDate(NSNumber *timestamp) {
-    if (timestamp == nil || timestamp.doubleValue <= 0) {
-        return @"";
-    }
-    NSDate *date = [NSDate dateWithTimeIntervalSince1970:timestamp.doubleValue / 1000.0];
-    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-    formatter.dateFormat = @"yyyy-MM-dd";
-    return [formatter stringFromDate:date];
-}
-
 static NSComparisonResult ShiguangCompareVersion(NSString *lhs, NSString *rhs) {
     NSArray<NSString *> *a = [lhs componentsSeparatedByString:@"."];
     NSArray<NSString *> *b = [rhs componentsSeparatedByString:@"."];
@@ -88,9 +78,6 @@ static NSComparisonResult ShiguangCompareVersion(NSString *lhs, NSString *rhs) {
 @property(nonatomic) UILabel *statusLabel;
 @property(nonatomic) UILabel *messageLabel;
 
-@property(nonatomic) UIView *announcementCard;
-@property(nonatomic) UILabel *announcementDateLabel;
-@property(nonatomic) UILabel *announcementLabel;
 @property(nonatomic) UIButton *passwordButton;
 @property(nonatomic) UIButton *musicButton;
 @property(nonatomic) UIButton *versionButton;
@@ -120,7 +107,6 @@ static NSComparisonResult ShiguangCompareVersion(NSString *lhs, NSString *rhs) {
 
     [self refreshAccountState];
     [self refreshUI];
-    [self loadAnnouncement];
     [ShiguangBootstrap start];
 }
 
@@ -277,7 +263,6 @@ static NSComparisonResult ShiguangCompareVersion(NSString *lhs, NSString *rhs) {
     [self.contentStack addArrangedSubview:headerStack];
     [self.contentStack addArrangedSubview:subtitleLabel];
     [self.contentStack addArrangedSubview:[self makeSpacerWithHeight:2]];
-    [self.contentStack addArrangedSubview:[self makeAnnouncementCard]];
     [self.contentStack addArrangedSubview:[self makeSpacerWithHeight:4]];
 
     // 登录 / 注册
@@ -415,57 +400,6 @@ static NSComparisonResult ShiguangCompareVersion(NSString *lhs, NSString *rhs) {
     return button;
 }
 
-- (UIView *)makeAnnouncementCard {
-    UIView *card = [[UIView alloc] init];
-    card.translatesAutoresizingMaskIntoConstraints = NO;
-    card.backgroundColor = [UIColor colorWithWhite:1 alpha:0.05];
-    card.layer.cornerRadius = 12;
-    card.layer.borderWidth = 1;
-    card.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.10].CGColor;
-    card.hidden = YES;
-
-    UILabel *titleLabel = [[UILabel alloc] init];
-    titleLabel.text = @"更新公告";
-    titleLabel.textColor = UIColor.whiteColor;
-    titleLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightSemibold];
-
-    UIView *titleSpacer = [[UIView alloc] init];
-    [titleSpacer setContentHuggingPriority:UILayoutPriorityDefaultLow forAxis:UILayoutConstraintAxisHorizontal];
-
-    self.announcementDateLabel = [[UILabel alloc] init];
-    self.announcementDateLabel.textColor = ShiguangColorSecondary();
-    self.announcementDateLabel.font = [UIFont systemFontOfSize:11];
-    self.announcementDateLabel.textAlignment = NSTextAlignmentRight;
-
-    UIStackView *titleRow = [[UIStackView alloc] initWithArrangedSubviews:@[
-        titleLabel, titleSpacer, self.announcementDateLabel
-    ]];
-    titleRow.axis = UILayoutConstraintAxisHorizontal;
-    titleRow.alignment = UIStackViewAlignmentCenter;
-    titleRow.spacing = 8;
-
-    self.announcementLabel = [[UILabel alloc] init];
-    self.announcementLabel.textColor = [UIColor colorWithWhite:1 alpha:0.78];
-    self.announcementLabel.font = [UIFont systemFontOfSize:13];
-    self.announcementLabel.numberOfLines = 0;
-
-    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[titleRow, self.announcementLabel]];
-    stack.translatesAutoresizingMaskIntoConstraints = NO;
-    stack.axis = UILayoutConstraintAxisVertical;
-    stack.spacing = 6;
-    [card addSubview:stack];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [stack.topAnchor constraintEqualToAnchor:card.topAnchor constant:12],
-        [stack.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:12],
-        [stack.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-12],
-        [stack.bottomAnchor constraintEqualToAnchor:card.bottomAnchor constant:-12]
-    ]];
-
-    self.announcementCard = card;
-    return card;
-}
-
 - (UIView *)makeSpacerWithHeight:(CGFloat)height {
     UIView *view = [[UIView alloc] init];
     view.translatesAutoresizingMaskIntoConstraints = NO;
@@ -529,54 +463,7 @@ static NSComparisonResult ShiguangCompareVersion(NSString *lhs, NSString *rhs) {
     }
 }
 
-#pragma mark - 公告 / 反馈 / 音乐 / 密码 / 版本
-
-- (void)loadAnnouncement {
-    NSURL *url = [NSURL URLWithString:SHIGUANG_ANNOUNCEMENT_URL];
-    if (url == nil) {
-        return;
-    }
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    request.timeoutInterval = 10;
-    [request setValue:SHIGUANG_USER_AGENT forHTTPHeaderField:@"User-Agent"];
-
-    __weak ShiguangHomeViewController *weakSelf = self;
-    [[NSURLSession.sharedSession dataTaskWithRequest:request
-        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        NSDictionary *item = nil;
-        if (data.length > 0) {
-            id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            if ([json isKindOfClass:NSDictionary.class]) {
-                id list = json[@"list"];
-                if (![list isKindOfClass:NSArray.class]) {
-                    id nested = json[@"data"];
-                    if ([nested isKindOfClass:NSDictionary.class]) {
-                        list = nested[@"list"];
-                    }
-                }
-                if ([list isKindOfClass:NSArray.class] && [list count] > 0) {
-                    id first = list[0];
-                    if ([first isKindOfClass:NSDictionary.class]) {
-                        item = first;
-                    }
-                }
-            }
-        }
-
-        NSString *content = [item[@"content"] isKindOfClass:NSString.class] ? item[@"content"] : nil;
-        NSNumber *createdAt = [item[@"createdAt"] isKindOfClass:NSNumber.class] ? item[@"createdAt"] : nil;
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-            ShiguangHomeViewController *strongSelf = weakSelf;
-            if (strongSelf == nil || content.length == 0) {
-                return;
-            }
-            strongSelf.announcementLabel.text = content;
-            strongSelf.announcementDateLabel.text = ShiguangFormatAnnouncementDate(createdAt);
-            strongSelf.announcementCard.hidden = NO;
-        });
-    }] resume];
-}
+#pragma mark - 反馈 / 音乐 / 密码 / 版本
 
 - (void)openExternalURL:(NSString *)urlString {
     NSURL *url = [NSURL URLWithString:urlString];
