@@ -12,6 +12,13 @@ DETECTARCH  := $(shell uname -m)
 VERSION     := 1.0.1
 BRANCH      := $(shell git branch --show-current)
 COMMIT      := $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
+# 打 tag 时处于 detached HEAD，branch 为空会导致 CONFIG_BRANCH 未定义而编译失败
+ifeq ($(strip $(BRANCH)),)
+BRANCH      := $(shell git describe --tags --always 2>/dev/null || echo "unknown")
+endif
+ifeq ($(strip $(COMMIT)),)
+COMMIT      := "unknown"
+endif
 PLATFORM    ?= 2
 
 # Release vs Debug
