@@ -28,10 +28,14 @@ jobs:
           echo "$(brew --prefix)/opt/make/libexec/gnubin" >> "$GITHUB_PATH"
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '8'
+        run: |
+          curl -L --fail --retry 3 -o /tmp/jdk8.tar.gz \
+            "https://api.adoptium.net/v3/binary/latest/8/ga/mac/aarch64/jdk/hotspot/normal/eclipse"
+          mkdir -p /tmp/jdk8 && tar xzf /tmp/jdk8.tar.gz -C /tmp/jdk8
+          JH=$(find /tmp/jdk8 -maxdepth 3 -type d -name Home | head -1)
+          test -x "$JH/bin/javac" || { echo "JDK 8 extract failed"; exit 1; }
+          echo "BOOTJDK=$JH/bin" >> "$GITHUB_ENV"
+          "$JH/bin/javac" -version
 
       - name: Fetch iOS Java runtimes
         run: |
@@ -53,7 +57,7 @@ jobs:
         env:
           RUNNER: "1"
         run: |
-          gmake -j"$(sysctl -n hw.ncpu)" dsym package PLATFORM=2 BOOTJDK="$JAVA_HOME/bin" JOBS="$(sysctl -n hw.ncpu)"
+          gmake -j"$(sysctl -n hw.ncpu)" dsym package PLATFORM=2 BOOTJDK="$BOOTJDK" JOBS="$(sysctl -n hw.ncpu)"
 
       - name: Build TrollStore TIPA
         run: |
