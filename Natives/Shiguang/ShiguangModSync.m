@@ -141,7 +141,98 @@ static BOOL SGSpecIsPack(NSDictionary *spec) {
     return [spec[@"kind"] isEqualToString:@"pack"];
 }
 
-static NSString *SGFindLocalFile(NSString *directory, NSDictionary *spec) {
+/// 从文件名解析版本号：fabric-api-0.116.17+1.21.1.jar → 0.116.17
+static NSString *SGVersionFromName(NSString *name, BOOL isPack) {
+    NSString *stem = name;
+    NSString *lower = name.lowercaseString;
+    if ([lower hasSuffix:@".jar"] || [lower hasSuffix:@".zip"]) {
+        stem = [name substringToIndex:name.length - 4];
+    }
+    NSString *base = stem;
+    NSRange plus = [stem rangeOfString:@"+"];
+    if (plus.location != NSNotFound) {
+        base = [stem substringToIndex:plus.location];
+    }
+
+    if (isPack) {
+        NSString *token = [[base componentsSeparatedByCharactersInSet:NSCharacterSet.whitespaceCharacterSet] lastObject] ?: @"";
+        NSString *digits = token;
+        if ([digits hasPrefix:@"v"] || [digits hasPrefix:@"V"]) {
+            digits = [digits substringFromIndex:1];
+        }
+        if (digits.length == 0) {
+            return @"";
+        }
+        unichar first = [digits characterAtIndex:0];
+        if (!(first >= '0' && first <= '9')) {
+            return @"";
+        }
+        NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:@"0123456789."];
+        if ([digits rangeOfCharacterFromSet:allowed.invertedSet].location != NSNotFound) {
+            return @"";
+        }
+        return digits;
+    }
+
+    NSArray<NSString *> *tokens = [base componentsSeparatedByString:@"-"];
+    for (NSString *token in [tokens reverseObjectEnumerator]) {
+        if (token.length == 0) {
+            continue;
+        }
+        unichar first = [token characterAtIndex:0];
+        if (!(first >= '0' && first <= '9')) {
+            continue;
+        }
+        NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:@"0123456789."];
+        if ([token rangeOfCharacterFromSet:allowed.invertedSet].location != NSNotFound) {
+            continue;
+        }
+        if ([token isEqualToString:SHIGUANG_MC_VERSION] || [token isEqualToString:@"1.21"]) {
+            continue;
+        }
+        return token;
+    }
+    return tokens.lastObject ?: @"";
+}
+
+/// 版本号转数字序列，便于比较 1.8.10 > 1.8.9
+static NSArray<NSNumber *> *SGVersionKey(NSString *version) {
+    NSMutableArray<NSNumber *> *keys = [NSMutableArray array];
+    NSMutableString *digits = [NSMutableString string];
+    for (NSUInteger i = 0; i < version.length; i++) {
+        unichar c = [version characterAtIndex:i];
+        if (c >= '0' && c <= '9') {
+            [digits appendFormat:@"%C", c];
+        } else if (digits.length > 0) {
+            [keys addObject:@(digits.longLongValue)];
+            [digits setString:@""];
+        }
+    }
+    if (digits.length > 0) {
+        [keys addObject:@(digits.longLongValue)];
+    }
+    return keys;
+}
+
+static NSComparisonResult SGCompareVersion(NSString *lhs, NSString *rhs) {
+    NSArray<NSNumber *> *a = SGVersionKey(lhs);
+    NSArray<NSNumber *> *b = SGVersionKey(rhs);
+    NSUInteger count = MAX(a.count, b.count);
+    for (NSUInteger i = 0; i < count; i++) {
+        long long left = i < a.count ? a[i].longLongValue : 0;
+        long long right = i < b.count ? b[i].longLongValue : 0;
+        if (left > right) {
+            return NSOrderedDescending;
+        }
+        if (left < right) {
+            return NSOrderedAscending;
+        }
+    }
+    return NSOrderedSame;
+}
+
+/// 在目录中找已安装的文件（版本号最高的一份），返回 path 与 version
+static NSDictionary *SGFindBestLocalFile(NSString *directory, NSDictionary *spec) {
     NSFileManager *fileManager = NSFileManager.defaultManager;
     NSArray<NSString *> *names = [fileManager contentsOfDirectoryAtPath:directory error:nil];
     if (names == nil) {
@@ -152,21 +243,35 @@ static NSString *SGFindLocalFile(NSString *directory, NSDictionary *spec) {
     NSString *excludes = [spec[@"excludes"] ?: @"" lowercaseString];
     BOOL isPack = SGSpecIsPack(spec);
 
+    NSDictionary *best = nil;
     for (NSString *name in names) {
         NSString *lower = name.lowercaseString;
         BOOL extensionOK = isPack ? [lower hasSuffix:@".zip"] : [lower hasSuffix:@".jar"];
         if (!extensionOK) {
             continue;
         }
+        // 用文件名前缀匹配：contains 会把 "Chiselmon-...+cobblemon-1.8.0.jar" 误判成 Cobblemon 本体
         if (contains.length > 0 && ![lower hasPrefix:contains]) {
             continue;
         }
         if (excludes.length > 0 && [lower containsString:excludes]) {
             continue;
         }
-        return [directory stringByAppendingPathComponent:name];
+        NSString *version = SGVersionFromName(name, isPack);
+        if (best == nil ||
+            SGCompareVersion(version, best[@"version"]) == NSOrderedDescending) {
+            best = @{
+                @"path": [directory stringByAppendingPathComponent:name],
+                @"version": version,
+                @"name": name
+            };
+        }
     }
-    return nil;
+    return best;
+}
+
+static NSString *SGFindLocalFile(NSString *directory, NSDictionary *spec) {
+    return SGFindBestLocalFile(directory, spec)[@"path"];
 }
 
 #pragma mark - 版本解析
@@ -602,6 +707,7 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
     SGDispatchProgress(progress, @"正在检查模组与材质包…", 0, 0);
 
     NSInteger downloaded = 0;
+    NSInteger updated = 0;
     NSInteger skipped = 0;
     NSInteger failed = 0;
     for (NSInteger i = 0; i < (NSInteger)specs.count; i++) {
@@ -611,32 +717,55 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
         }
         NSString *directory = SGSpecIsPack(spec) ? packsDir : modsDir;
         NSString *name = spec[@"name"] ?: @"未命名";
-        NSString *local = SGFindLocalFile(directory, spec);
-        if (local != nil) {
-            skipped++;
-            SGDispatchProgress(progress,
-                [NSString stringWithFormat:@"%@（本地已有）", name],
-                (double)(i + 1) / (double)specs.count, 0);
-            continue;
-        }
-
         NSString *kindLabel = SGSpecIsPack(spec) ? @"材质包" : @"模组";
+        NSDictionary *local = SGFindBestLocalFile(directory, spec);
+
         SGDispatchProgress(progress,
             [NSString stringWithFormat:@"正在检查%@ %@（%ld/%ld）", kindLabel, name, (long)(i + 1), (long)specs.count],
             (double)i / (double)specs.count, 0);
 
         NSDictionary *release = SGResolveRelease(spec);
         if (release == nil) {
-            failed++;
+            if (local != nil) {
+                // 离线或接口异常时，本地已有就保持现状
+                skipped++;
+            } else {
+                failed++;
+            }
+            continue;
+        }
+
+        BOOL needsDownload = (local == nil);
+        if (local != nil) {
+            NSString *localVersion = local[@"version"];
+            NSString *remoteVersion = SGVersionFromName(release[@"filename"] ?: @"", SGSpecIsPack(spec));
+            if (localVersion.length > 0 && remoteVersion.length > 0) {
+                needsDownload = SGCompareVersion(remoteVersion, localVersion) == NSOrderedDescending;
+            } else {
+                needsDownload = ![local[@"name"] isEqualToString:release[@"filename"]];
+            }
+        }
+        if (!needsDownload) {
+            skipped++;
+            SGDispatchProgress(progress,
+                [NSString stringWithFormat:@"%@（已是最新）", name],
+                (double)(i + 1) / (double)specs.count, 0);
             continue;
         }
 
         NSString *target = [directory stringByAppendingPathComponent:release[@"filename"]];
-        NSString *message = [NSString stringWithFormat:@"正在下载%@ %@（%ld/%ld）", kindLabel, name, (long)(i + 1), (long)specs.count];
+        NSString *message = local != nil
+            ? [NSString stringWithFormat:@"正在更新%@ %@（%ld/%ld）", kindLabel, name, (long)(i + 1), (long)specs.count]
+            : [NSString stringWithFormat:@"正在下载%@ %@（%ld/%ld）", kindLabel, name, (long)(i + 1), (long)specs.count];
         NSError *error = SGDownloadFile(release[@"url"], target, message,
             (double)i / (double)specs.count, 1.0 / (double)specs.count, progress);
         if (error == nil) {
-            downloaded++;
+            if (local != nil && ![local[@"path"] isEqualToString:target]) {
+                [fileManager removeItemAtPath:local[@"path"] error:nil];
+                updated++;
+            } else {
+                downloaded++;
+            }
         } else {
             failed++;
             [fileManager removeItemAtPath:target error:nil];
@@ -652,12 +781,12 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
     SGSyncServerMods(gameDir, progress);
 
     NSString *summary;
-    if (downloaded == 0 && failed == 0) {
+    if (downloaded == 0 && updated == 0 && failed == 0) {
         summary = [NSString stringWithFormat:@"模组与材质包已是最新（%ld 项）", (long)skipped];
     } else if (failed == 0) {
-        summary = [NSString stringWithFormat:@"已同步 %ld 项，跳过 %ld 项", (long)downloaded, (long)skipped];
+        summary = [NSString stringWithFormat:@"已同步 %ld 项，更新 %ld 项，跳过 %ld 项", (long)downloaded, (long)updated, (long)skipped];
     } else {
-        summary = [NSString stringWithFormat:@"已同步 %ld 项，失败 %ld 项", (long)downloaded, (long)failed];
+        summary = [NSString stringWithFormat:@"已同步 %ld 项，更新 %ld 项，失败 %ld 项", (long)downloaded, (long)updated, (long)failed];
     }
     if (completion) {
         completion(summary, failed == 0);

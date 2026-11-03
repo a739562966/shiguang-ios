@@ -41,6 +41,8 @@
     }
 
     NSString *name = altName ?: path.lastPathComponent;
+    // 国内镜像优先（BMCLAPI），非 Mojang/Fabric 地址会原样返回
+    url = ShiguangMirrorURL(url);
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
     __block NSProgress *progress;
     __block NSURLSessionDownloadTask *task = [self.manager downloadTaskWithRequest:request progress:nil

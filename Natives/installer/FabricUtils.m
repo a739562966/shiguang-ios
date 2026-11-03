@@ -5,10 +5,10 @@
 + (NSDictionary *)endpoints {
     return @{
         @"Fabric": @{
-            @"game": @"https://meta.fabricmc.net/v2/versions/game",
-            @"loader": @"https://meta.fabricmc.net/v2/versions/loader",
+            @"game": @"https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/game",
+            @"loader": @"https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader",
             @"icon": @"https://avatars.githubusercontent.com/u/21025855?s=64",
-            @"json": @"https://meta.fabricmc.net/v2/versions/loader/%@/%@/profile/json"
+            @"json": @"https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader/%@/%@/profile/json"
         },
         @"Quilt": @{
             @"game": @"https://meta.quiltmc.org/v3/versions/game",

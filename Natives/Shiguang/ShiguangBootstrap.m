@@ -210,7 +210,7 @@ static id ShiguangBootstrapGetJSON(NSString *urlString, NSError **outError) {
 
     NSError *error = nil;
     id loaders = ShiguangBootstrapGetJSON([NSString stringWithFormat:
-        @"https://meta.fabricmc.net/v2/versions/loader/%@", SHIGUANG_MC_VERSION], &error);
+        @"https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader/%@", SHIGUANG_MC_VERSION], &error);
     if (![loaders isKindOfClass:NSArray.class] || [loaders count] == 0) {
         if (outError) *outError = @"无法获取 Fabric 加载器列表，请检查网络";
         return nil;
@@ -231,7 +231,7 @@ static id ShiguangBootstrapGetJSON(NSString *urlString, NSError **outError) {
     }
 
     NSString *profileURL = [NSString stringWithFormat:
-        @"https://meta.fabricmc.net/v2/versions/loader/%@/%@/profile/json",
+        @"https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader/%@/%@/profile/json",
         SHIGUANG_MC_VERSION, loaderVersion];
     NSDictionary *profile = ShiguangBootstrapGetJSON(profileURL, &error);
     if (![profile isKindOfClass:NSDictionary.class]) {
@@ -385,7 +385,7 @@ static id ShiguangBootstrapGetJSON(NSString *urlString, NSError **outError) {
     [self updateMessage:@"正在获取游戏版本信息…" progress:-1 speed:0];
 
     NSError *manifestError = nil;
-    id manifestObject = ShiguangBootstrapGetJSON(@"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", &manifestError);
+    id manifestObject = ShiguangBootstrapGetJSON(@"https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json", &manifestError);
     if (![manifestObject isKindOfClass:NSDictionary.class]) {
         [self finishWithError:@"无法获取 Minecraft 版本清单，请检查网络"];
         return;

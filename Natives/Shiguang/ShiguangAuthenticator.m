@@ -191,6 +191,40 @@ static NSMutableDictionary *ShiguangAccountFromResponse(NSDictionary *json) {
     }];
 }
 
++ (void)changePassword:(NSString *)oldPassword
+                   to:(NSString *)newPassword
+             callback:(Callback)callback {
+    if (![ShiguangAuthenticator isCurrentShiguang]) {
+        callback(@"请先登录", NO);
+        return;
+    }
+
+    BaseAuthenticator *current = BaseAuthenticator.current;
+    ShiguangRequest(@"/authserver/changepassword", @{
+        @"accessToken": current.authData[@"accessToken"] ?: @"",
+        @"clientToken": current.authData[@"clientToken"] ?: @"",
+        @"oldPassword": oldPassword,
+        @"newPassword": newPassword
+    }, ^(id json) {
+        // 兼容只返回新令牌、不返回角色信息的实现
+        NSString *accessToken = json[@"accessToken"];
+        NSString *clientToken = json[@"clientToken"];
+        if ([accessToken isKindOfClass:NSString.class] && accessToken.length > 0) {
+            current.authData[@"accessToken"] = accessToken;
+        }
+        if ([clientToken isKindOfClass:NSString.class] && clientToken.length > 0) {
+            current.authData[@"clientToken"] = clientToken;
+        }
+        if (![current saveChanges]) {
+            callback(@"密码已修改，但保存令牌失败", NO);
+            return;
+        }
+        callback(nil, YES);
+    }, ^(NSString *message) {
+        callback(message, NO);
+    });
+}
+
 - (void)loginWithCallback:(Callback)callback {
     NSString *username = self.authData[@"inputUsername"];
     NSString *password = self.authData[@"inputPassword"];

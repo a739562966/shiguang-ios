@@ -17,6 +17,11 @@
 /// 启动前校验令牌，失效时自动刷新
 + (void)ensureValidWithCallback:(Callback)callback;
 
+/// 修改密码，成功后服务端会换发新令牌并写回当前账号
++ (void)changePassword:(NSString *)oldPassword
+                   to:(NSString *)newPassword
+             callback:(Callback)callback;
+
 /// 当前账号是否来自拾光认证
 + (BOOL)isCurrentShiguang;
 

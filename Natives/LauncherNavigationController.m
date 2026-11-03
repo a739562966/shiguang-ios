@@ -151,7 +151,7 @@ static void *ProgressObserverContext = &ProgressObserverContext;
     ].mutableCopy;
 
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
-    [manager GET:@"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json" parameters:nil headers:nil progress:^(NSProgress * _Nonnull progress) {
+    [manager GET:@"https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json" parameters:nil headers:nil progress:^(NSProgress * _Nonnull progress) {
         self.progressViewMain.progress = progress.fractionCompleted;
     } success:^(NSURLSessionTask *task, NSDictionary *responseObject) {
         [remoteVersionList addObjectsFromArray:responseObject[@"versions"]];
