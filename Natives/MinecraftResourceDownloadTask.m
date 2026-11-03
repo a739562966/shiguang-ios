@@ -22,6 +22,11 @@
     // TODO: implement background download
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     configuration.timeoutIntervalForRequest = 86400;
+    // 默认每个主机只允许 6 条连接，而 libraries/assets 全被镜像改写到 bmclapi 同一个域名，
+    // 大量小文件只能排队，表现为"前面大文件很快、后面越来越慢"。
+    configuration.HTTPMaximumConnectionsPerHost = 32;
+    configuration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+    configuration.URLCache = nil;
     //backgroundSessionConfigurationWithIdentifier:@"net.kdt.pojavlauncher.downloadtask"];
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     self.fileList = [NSMutableArray new];

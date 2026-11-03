@@ -706,14 +706,20 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
 
     SGDispatchProgress(progress, @"正在检查模组与材质包…", 0, 0);
 
-    NSInteger downloaded = 0;
-    NSInteger updated = 0;
-    NSInteger skipped = 0;
-    NSInteger failed = 0;
-    for (NSInteger i = 0; i < (NSInteger)specs.count; i++) {
+    __block NSInteger downloaded = 0;
+    __block NSInteger updated = 0;
+    __block NSInteger skipped = 0;
+    __block NSInteger failed = 0;
+    NSLock *counterLock = [NSLock new];
+    // 最多 6 个文件同时下载：原来逐个串行，单个 CDN 连接只有几十 KB/s，总时间被拉得很长
+    dispatch_semaphore_t slots = dispatch_semaphore_create(6);
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_queue_t queue = dispatch_queue_create("shiguang.mod-sync", DISPATCH_QUEUE_CONCURRENT);
+
+    void (^processSpec)(NSInteger) = ^(NSInteger i) {
         NSDictionary *spec = specs[i];
         if (![spec isKindOfClass:NSDictionary.class]) {
-            continue;
+            return;
         }
         NSString *directory = SGSpecIsPack(spec) ? packsDir : modsDir;
         NSString *name = spec[@"name"] ?: @"未命名";
@@ -726,13 +732,15 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
 
         NSDictionary *release = SGResolveRelease(spec);
         if (release == nil) {
+            [counterLock lock];
             if (local != nil) {
                 // 离线或接口异常时，本地已有就保持现状
                 skipped++;
             } else {
                 failed++;
             }
-            continue;
+            [counterLock unlock];
+            return;
         }
 
         BOOL needsDownload = (local == nil);
@@ -746,11 +754,13 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
             }
         }
         if (!needsDownload) {
+            [counterLock lock];
             skipped++;
+            [counterLock unlock];
             SGDispatchProgress(progress,
                 [NSString stringWithFormat:@"%@（已是最新）", name],
                 (double)(i + 1) / (double)specs.count, 0);
-            continue;
+            return;
         }
 
         NSString *target = [directory stringByAppendingPathComponent:release[@"filename"]];
@@ -759,6 +769,7 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
             : [NSString stringWithFormat:@"正在下载%@ %@（%ld/%ld）", kindLabel, name, (long)(i + 1), (long)specs.count];
         NSError *error = SGDownloadFile(release[@"url"], target, message,
             (double)i / (double)specs.count, 1.0 / (double)specs.count, progress);
+        [counterLock lock];
         if (error == nil) {
             if (local != nil && ![local[@"path"] isEqualToString:target]) {
                 [fileManager removeItemAtPath:local[@"path"] error:nil];
@@ -770,7 +781,19 @@ static void SGSyncServerMods(NSString *gameDir, ShiguangSyncProgress progress) {
             failed++;
             [fileManager removeItemAtPath:target error:nil];
         }
+        [counterLock unlock];
+    };
+
+    for (NSInteger i = 0; i < (NSInteger)specs.count; i++) {
+        dispatch_group_enter(group);
+        dispatch_async(queue, ^{
+            dispatch_semaphore_wait(slots, DISPATCH_TIME_FOREVER);
+            processSpec(i);
+            dispatch_semaphore_signal(slots);
+            dispatch_group_leave(group);
+        });
     }
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
 
     SGEnsureDefaultOptions(gameDir);
     SGEnableResourcePacks(gameDir, specs);

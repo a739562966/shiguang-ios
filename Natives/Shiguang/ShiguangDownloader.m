@@ -26,6 +26,8 @@ static NSString *const ShiguangDownloaderErrorDomain = @"ShiguangDownloaderError
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     configuration.timeoutIntervalForRequest = 30;
     configuration.timeoutIntervalForResource = 86400;
+    // 模组同步默认 6 个文件并发，系统默认每主机 6 条连接会互相排队
+    configuration.HTTPMaximumConnectionsPerHost = 16;
     NSOperationQueue *queue = [[NSOperationQueue alloc] init];
     queue.maxConcurrentOperationCount = 1;
     queue.name = @"shiguang.downloader";
