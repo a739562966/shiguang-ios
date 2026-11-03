@@ -216,8 +216,9 @@ static id ShiguangBootstrapGetJSON(NSString *urlString, NSError **outError) {
         return nil;
     }
 
-    NSDictionary *selected = loaders.firstObject;
-    for (NSDictionary *entry in loaders) {
+    NSArray *loaderList = (NSArray *)loaders;
+    NSDictionary *selected = loaderList.firstObject;
+    for (NSDictionary *entry in loaderList) {
         if ([entry isKindOfClass:NSDictionary.class] && [entry[@"loader"][@"stable"] boolValue]) {
             selected = entry;
             break;
