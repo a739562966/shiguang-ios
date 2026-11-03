@@ -57,7 +57,16 @@ jobs:
         env:
           RUNNER: "1"
         run: |
-          gmake -j"$(sysctl -n hw.ncpu)" dsym package PLATFORM=2 BOOTJDK="$BOOTJDK" JOBS="$(sysctl -n hw.ncpu)"
+          set -o pipefail
+          gmake -j"$(sysctl -n hw.ncpu)" dsym package PLATFORM=2 BOOTJDK="$BOOTJDK" JOBS="$(sysctl -n hw.ncpu)" 2>&1 | tee /tmp/build.log
+
+      - name: Show build errors
+        if: failure()
+        run: |
+          echo "===== error lines ====="
+          grep -n -i -E "error:|fatal error|undefined symbol|No such file|cannot find" /tmp/build.log | head -40 || true
+          echo "===== last 80 lines ====="
+          tail -80 /tmp/build.log || true
 
       - name: Build TrollStore TIPA
         run: |
