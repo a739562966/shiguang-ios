@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
   release:
     types: [ published ]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -104,3 +108,12 @@ jobs:
           name: shiguang-ios-dsym
           path: artifacts/PojavLauncher.dSYM
           if-no-files-found: ignore
+
+      - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 拾光宝可梦小镇 iOS ${{ github.ref_name }}
+          files: |
+            output/*.ipa
+            output/*.tipa
